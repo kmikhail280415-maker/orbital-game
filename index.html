@@ -41,14 +41,19 @@ const PAL3=[{bg:'#05030d',ring:'#5b3a8a',gem:'#9bf6ff',bad:'#ff4d6d'},{bg:'#0503
 function applyPal(){Object.assign(C,(stage===3?PAL3:stage===2?PAL2:PAL)[(lvl-1)%4])}
 let best=0;try{best=+localStorage.getItem('orbita-best')||0}catch(e){}
 const DB_URL='https://orbital-c41b8-default-rtdb.firebaseio.com';
-let nick='';try{nick=localStorage.getItem('orbita-nick')||''}catch(e){}
+let nick='';try{nick=localStorage.getItem('orbita-nick')||''}catch(e){}if(badNick(nick))nick='';
 let board=[],board2=[],board3=[],boardErr='';
 const nickEl=document.getElementById('nick'),nickIn=document.getElementById('nickIn');
 function nickOpen(){return nickEl.style.display==='flex'}
+function badNick(n){let x=String(n).toLowerCase().replace(/ё/g,'е');const en=x.replace(/[^a-z]/g,'');
+if(/f+u+c+k|fck|blyat|blyad|blya|suka|pizd|pidor|pidar|hui|huy|xui|xuy|shit|bitch|cunt|dick|nigg|whore|slut|asshole|pussy|cock|bastard|fuk/.test(en))return true;
+const mp={a:'а',e:'е',o:'о',p:'р',c:'с',x:'х',y:'у',k:'к',m:'м',t:'т',h:'н',b:'в','0':'о','3':'з','6':'б','4':'ч','@':'а','$':'с'};
+x=x.replace(/[a-z0-9@$]/g,ch=>mp[ch]||ch).replace(/[^а-я]/g,'').replace(/(.)\1+/g,'$1');
+return /х+у+[йеяию]|хуел|хуйн|пизд|пезд|бля[дт]|блеа|бляя|сука|сучк|сучар|пидо?р|пидр|педик|мудак|мудил|мудо|гандон|гондон|залуп|шлюх|шалав|дроч|говн|жопа|манд[ао]|долбо[её]б|уеб|(^|по|на|за|у|вы|до|съ|от|об|пере|при|про|раз|с|ни)е+б(ат|ан|ал|л|у|и|ну|ыр|ис|ло)|ебл|еблан|ебуч|херн|хер(а|ов|ню)|ссык|чмо|нахуй|нахер|гнида|тварь|урод/.test(x)}
 function askNick(){nickEl.style.display='flex';nickIn.value=nick;setTimeout(()=>nickIn.focus(),50)}
-document.getElementById('nickBtn').onclick=()=>{const v=nickIn.value.trim().slice(0,12);if(!v)return;nick=v;try{localStorage.setItem('orbita-nick',nick)}catch(e){}nickEl.style.display='none'};
-async function loadBoard(){if(!DB_URL)return;try{const r=await fetch(DB_URL+'/scores.json?orderBy=%22score%22&limitToLast=150');const d=await r.json();boardErr=(d&&d.error)?String(d.error):'';const ms=[{},{},{}];for(const k in d||{}){const s=d[k];if(!s||!s.name)continue;const m=ms[s.st===3?2:s.st===2?1:0];if(!m[s.name]||s.score>m[s.name])m[s.name]=s.score}const tb=m=>Object.keys(m).map(n=>({name:n,score:m[n]})).sort((x,y)=>y.score-x.score).slice(0,3);board=tb(ms[0]);board2=tb(ms[1]);board3=tb(ms[2])}catch(e){boardErr='нет связи'}}
-async function submit(s){if(!DB_URL||!nick||s<1)return;try{await fetch(DB_URL+'/scores.json',{method:'POST',body:JSON.stringify({name:nick,score:s,st:stage})});await loadBoard()}catch(e){}}
+document.getElementById('nickBtn').onclick=()=>{const v=nickIn.value.trim().slice(0,12);if(!v)return;if(badNick(v)){nickIn.value='';nickIn.placeholder='Нельзя такой ник';nickIn.focus();return}nick=v;try{localStorage.setItem('orbita-nick',nick)}catch(e){}nickEl.style.display='none'};
+async function loadBoard(){if(!DB_URL)return;try{const r=await fetch(DB_URL+'/scores.json?orderBy=%22score%22&limitToLast=150');const d=await r.json();boardErr=(d&&d.error)?String(d.error):'';const ms=[{},{},{}];for(const k in d||{}){const s=d[k];if(!s||!s.name||badNick(s.name))continue;const m=ms[s.st===3?2:s.st===2?1:0];if(!m[s.name]||s.score>m[s.name])m[s.name]=s.score}const tb=m=>Object.keys(m).map(n=>({name:n,score:m[n]})).sort((x,y)=>y.score-x.score).slice(0,3);board=tb(ms[0]);board2=tb(ms[1]);board3=tb(ms[2])}catch(e){boardErr='нет связи'}}
+async function submit(s){if(!DB_URL||!nick||s<1||badNick(nick))return;try{await fetch(DB_URL+'/scores.json',{method:'POST',body:JSON.stringify({name:nick,score:s,st:stage})});await loadBoard()}catch(e){}}
 if(!nick)askNick();loadBoard();
 const AL=[{id:'g20',n:'Охотник',d:'собери 20 кристаллов за игру'},{id:'boss',n:'Победитель',d:'победи босса'},{id:'shield',n:'Щитовик',d:'спаси корабль щитом'},{id:'time',n:'Хозяин времени',d:'останови время'},{id:'mag',n:'Магнитчик',d:'подбери магнит'},{id:'lvl3',n:'Космонавт',d:'дойди до 3 уровня'},{id:'st2',n:'Мореплаватель',d:'набери 70 очков и открой океан'},{id:'g50',n:'Коллекционер',d:'собери 50 кристаллов за игру'},{id:'g100',n:'Легенда',d:'набери 100 очков'},{id:'lvl5',n:'Звёздный капитан',d:'дойди до 5 уровня'},{id:'ocean',n:'Покоритель океана',d:'набери 20 очков на океане'},{id:'shield3',n:'Неуязвимый',d:'спаси корабль щитом 3 раза за игру'},{id:'st3',n:'Исследователь',d:'набери 50 очков на океане и открой лабиринт'},{id:'lab',n:'Выход из тьмы',d:'набери 30 очков в лабиринте'},{id:'dark',n:'Хранитель тьмы',d:'победи босса в лабиринте'},{id:'lab100',n:'Повелитель лабиринта',d:'набери 100 очков в лабиринте'}];
 let ach={};try{ach=JSON.parse(localStorage.getItem('orbita-ach')||'{}')}catch(e){}
