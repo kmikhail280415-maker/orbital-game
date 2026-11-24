@@ -66,13 +66,27 @@ if(/f+u+c+k|fck|blyat|blyad|blya|suka|pizd|pidor|pidar|hui|huy|xui|xuy|shit|bitc
 const mp={a:'а',e:'е',o:'о',p:'р',c:'с',x:'х',y:'у',k:'к',m:'м',t:'т',h:'н',b:'в','0':'о','3':'з','6':'б','4':'ч','@':'а','$':'с'};
 x=x.replace(/[a-z0-9@$]/g,ch=>mp[ch]||ch).replace(/[^а-я]/g,'').replace(/(.)\1+/g,'$1');
 return /х+у+[йеяию]|хуел|хуйн|пизд|пезд|бля[дт]|блеа|бляя|сука|сучк|сучар|пидо?р|пидр|педик|мудак|мудил|мудо|гандон|гондон|залуп|шлюх|шалав|дроч|говн|жопа|манд[ао]|долбо[её]б|уеб|(^|по|на|за|у|вы|до|съ|от|об|пере|при|про|раз|с|ни)е+б(ат|ан|ал|л|у|и|ну|ыр|ис|ло)|ебл|еблан|ебуч|херн|хер(а|ов|ню)|ссык|чмо|нахуй|нахер|гнида|тварь|урод/.test(x)}
-async function loadBoard(){if(!DB_URL)return;try{const r=await fetch(DB_URL+'/scores.json?orderBy=%22score%22&limitToLast=300');const d=await r.json();boardErr=(d&&d.error)?String(d.error):'';const ms=[{},{},{},{},{},{},{},{},{}];for(const k in d||{}){const s=d[k];if(!s||!s.name)continue;if(badNick(s.name))s.name='*'.repeat(Math.max(3,Math.min(String(s.name).length,8)));const m=ms[s.st===9?8:s.st===8?7:s.st===7?6:s.st===6?5:s.st===5?4:s.st===4?3:s.st===3?2:s.st===2?1:0];if(!m[s.name]||s.score>m[s.name])m[s.name]=s.score}const tb=m=>Object.keys(m).map(n=>({name:n,score:m[n]})).sort((x,y)=>y.score-x.score).slice(0,3);board=tb(ms[0]);board2=tb(ms[1]);board3=tb(ms[2]);board4=tb(ms[3]);board5=tb(ms[4]);board6=tb(ms[5]);board7=tb(ms[6]);board8=tb(ms[7]);board9=tb(ms[8])}catch(e){boardErr='нет связи'}}
+async function loadBoard(){if(!DB_URL)return;try{const r=await fetch(DB_URL+'/scores.json?orderBy=%22score%22&limitToLast=300');const d=await r.json();boardErr=(d&&d.error)?String(d.error):'';const ms=[{},{},{},{},{},{},{},{},{}];for(const k in d||{}){const s=d[k];if(!s||!s.name)continue;if(badNick(s.name))s.name='*'.repeat(Math.max(3,Math.min(String(s.name).length,8)));const m=ms[s.st===9?8:s.st===8?7:s.st===7?6:s.st===6?5:s.st===5?4:s.st===4?3:s.st===3?2:s.st===2?1:0];if(!m[s.name]||s.score>m[s.name])m[s.name]=s.score}const tb=m=>Object.keys(m).map(n=>({name:n,score:m[n]})).sort((x,y)=>y.score-x.score).slice(0,3);board=tb(ms[0]);board2=tb(ms[1]);board3=tb(ms[2]);board4=tb(ms[3]);board5=tb(ms[4]);board6=tb(ms[5]);board7=tb(ms[6]);board8=tb(ms[7]);board9=tb(ms[8]);restoreFromBoard(ms)}catch(e){boardErr='нет связи'}}
 async function submit(s){if(!DB_URL||!nick||s<1||badNick(nick))return;try{await fetch(DB_URL+'/scores.json',{method:'POST',body:JSON.stringify({name:nick,score:s,st:stage})});await loadBoard()}catch(e){}}
 /* ===== АККАУНТЫ ===== */
 const PK=['orbita-best','orbita-best2','orbita-best3','orbita-best4','orbita-best5','orbita-best6','orbita-best7','orbita-best8','orbita-best9','orbita-ach','orbita-codes','orbita-money','orbita-skin','orbita-allst'];
 let acct='';try{acct=localStorage.getItem('orbita-acct')||''}catch(e){}
 function snap(){const o={};for(const k of PK){try{const v=localStorage.getItem(k);if(v!==null)o[k.slice(7)]=v}catch(e){}}return o}
 function applyData(d){for(const k of PK){const v=d&&d[k.slice(7)];try{if(v===undefined||v===null)localStorage.removeItem(k);else localStorage.setItem(k,String(v))}catch(e){}}}
+function mergeData(c,l,login){c=c||{};const o=Object.assign({},c);const J=v=>{try{return JSON.parse(v||'null')}catch(e){return null}};
+  for(const k in l){const lv=l[k],cv=c[k];
+    if(/^best/.test(k))o[k]=String(Math.max(+cv||0,+lv||0));
+    else if(k==='ach')o[k]=JSON.stringify(Object.assign({},J(cv)||{},J(lv)||{}));
+    else if(k==='codes'){const a=J(cv)||[],b=J(lv)||[];o[k]=JSON.stringify([...new Set([...a,...b])])}
+    else if(k==='allst'){if(lv==='1'||cv==='1')o[k]='1'}
+    else if(k==='money'&&login)o[k]=String(Math.max(+cv||0,+lv||0));
+    else if(cv===undefined)o[k]=lv}
+  return o}
+function setBestVar(i,v){if(i===0)best=v;else if(i===1)best2=v;else if(i===2)best3=v;else if(i===3)best4=v;else if(i===4)best5=v;else if(i===5)best6=v;else if(i===6)best7=v;else if(i===7)best8=v;else best9=v}
+function restoreFromBoard(ms){if(!acct||!nick)return;const ln=nick.toLowerCase();let ch=false;
+  ms.forEach((m,i)=>{let v=0;for(const n in m)if(n.toLowerCase()===ln)v=Math.max(v,m[n]);const k='orbita-best'+(i?i+1:'');let cur=0;try{cur=+(localStorage.getItem(k)||0)}catch(e){}
+    if(v>cur){try{localStorage.setItem(k,v)}catch(e){}setBestVar(i,v);ch=true}});
+  if(ch&&typeof renderSkins==='function'){renderSkins();pushCloud()}}
 function nkey(n){return Array.from(new TextEncoder().encode(String(n).trim().toLowerCase().replace(/ё/g,'е'))).map(b=>b.toString(16).padStart(2,'0')).join('')}
 function rndHex(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('')}
 async function phash(pw,salt){const te=new TextEncoder(),km=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:te.encode('orbita:'+salt),iterations:60000,hash:'SHA-256'},km,256);return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('')}
@@ -81,7 +95,7 @@ async function pushCloud(force){if(!acct)return true;const j=JSON.stringify(snap
   try{const r=await fetch(DB_URL+'/users/'+acct+'/d.json',{method:'PUT',body:j});if(r.ok){lastPush=j;try{localStorage.removeItem('orbita-dirty')}catch(e){}return true}}catch(e){}return false}
 async function pullCloud(){if(!acct)return;try{if(localStorage.getItem('orbita-dirty')==='1'){await pushCloud(true);return}
   const r=await fetch(DB_URL+'/users/'+acct+'.json');if(!r.ok)return;const u=await r.json();if(!u)return;if(u.n&&u.n!==nick){nick=u.n;try{localStorage.setItem('orbita-nick',nick)}catch(e){}}
-  const cur=JSON.stringify(snap());applyData(u.d||{});const nw=JSON.stringify(snap());lastPush=nw;
+  const cur=JSON.stringify(snap());applyData(mergeData(u.d||{},snap(),false));const nw=JSON.stringify(snap());lastPush=nw;
   if(nw!==cur&&!sessionStorage.getItem('orbita-synced')){sessionStorage.setItem('orbita-synced','1');location.reload()}}catch(e){}}
 setInterval(()=>{pushCloud()},4000);
 document.addEventListener&&document.addEventListener('visibilitychange',()=>{if(document.hidden)pushCloud()});
@@ -112,7 +126,7 @@ function showAuth(tab,err,pre){tab=tab||'new';nickEl.innerHTML='';nickEl.style.d
         setLogged(k,n);nickEl.style.display='none';toast='Аккаунт '+n+' создан';toastT=3;renderSkins()}
       else{if(!u||!u.h)return E('Аккаунта с ником «'+n+'» нет');
         const h=await phash(p1.value,u.s);if(h!==u.h)return E('Неверный пароль');
-        applyData(u.d||{});setLogged(k,u.n||n);try{sessionStorage.setItem('orbita-synced','1')}catch(e){}location.reload()}
+        applyData(mergeData(u.d||{},snap(),true));setLogged(k,u.n||n);try{localStorage.setItem('orbita-dirty','1')}catch(e){}try{sessionStorage.setItem('orbita-synced','1')}catch(e){}location.reload()}
     }catch(e){E('Нет связи с сервером, попробуй ещё раз')}};
   [ni,p1,p2].forEach(x=>{if(x)x.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();bt.click()}}});
   setTimeout(()=>{(ni.value?p1:ni).focus()},50)}
